@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Zero SkyCam Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #f0f0f0; margin: 0; padding: 20px; }
+        h1, h2, h3 { color: #fff; }
+        .container { max-width: 1000px; margin: 0 auto; background: #2a2a2a; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .control-panel { background: #333; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #007BFF; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
+        .btn { padding: 10px 20px; font-size: 14px; font-weight: bold; background: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; }
+        .btn:hover { background: #0056b3; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #bd2130; }
+        .btn-secondary { padding: 5px 12px; font-size: 12px; background: #6c757d; }
+        .btn-secondary:hover { background: #5a6268; }
+        .preview-box img { max-width: 100%; height: auto; border: 3px solid #444; border-radius: 5px; margin-top: 10px; }
+        .gallery-form { margin-top: 30px; }
+        
+        details.day-card { background: #333; border: 1px solid #444; border-radius: 6px; margin-bottom: 15px; padding: 10px; }
+        details.day-card > summary { font-size: 18px; font-weight: bold; cursor: pointer; padding: 5px; color: #007BFF; display: flex; justify-content: space-between; align-items: center; outline: none; }
+        details[open].day-card > summary { border-bottom: 1px solid #444; margin-bottom: 15px; color: #fff; }
+        
+        details.hour-card { background: #222; border: 1px solid #333; border-radius: 4px; margin: 10px 0 10px 15px; padding: 8px; }
+        details.hour-card > summary { font-size: 15px; font-weight: bold; color: #ffc107; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        details[open].hour-card > summary { border-bottom: 1px solid #333; margin-bottom: 12px; color: #fff; }
+
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
+        .gallery-item { background: #1a1a1a; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #333; position: relative; }
+        .gallery-item img { width: 100%; height: auto; border-radius: 4px; display: block; margin-bottom: 8px; height: 90px; object-fit: cover; background: #000; }
+        .gallery-item span { font-size: 11px; color: #bbb; word-break: break-all; }
+        .select-check { transform: scale(1.3); margin-top: 5px; cursor: pointer; }
+        input[type="number"] { width: 60px; padding: 8px; border-radius: 4px; border: 1px solid #555; background: #444; color: white; text-align: center; }
+        .summary-text { display: flex; align-items: center; gap: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌵 Tucson SkyCam Prototype Dashboard</h1>
+        
+        <div class="control-panel">
+            <form action="/update_settings" method="POST" style="display: flex; align-items: center; gap: 10px;">
+                <label><strong>Interval (seconds):</strong></label>
+                <input type="number" name="interval" value="{{ config.INTERVAL }}" min="5">
+                
+                {% if config.AUTO_ON %}
+                    <button type="submit" name="action" value="stop" class="btn btn-danger">🛑 Stop Auto Capture</button>
+                {% else %}
+                    <button type="submit" name="action" value="start" class="btn btn-success">▶️ Start Auto Capture</button>
+                {% endif %}
+            </form>
+            <a href="/snap" class="btn">📸 Manual Snap</a>
+        </div>
+
+        <div class="preview-box">
+            <h3>Latest Horizon View:</h3>
+            <img src="/static/images/latest.jpg?t={{ cache_buster }}" alt="No image captured yet">
+            <br><br>
+            
+            {% if is_compiling %}
+                <div class="btn" style="background: #ffc107; color: #000; cursor: default;">
+                    🎬 Timelapse is compiling in background... please refresh page in a moment
+                </div>
+                <script>
+                    setTimeout(() => { window.location.reload(); }, 6000);
+                </script>
+            {% elif timelapse_exists %}
+                <a href="/static/images/timelapse.mp4" class="btn btn-success" download>⬇️ Download Compiled Timelapse</a>
+            {% endif %}
+        </div>
+
+        <form id="galleryForm" method="POST" class="gallery-form" autocomplete="off">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #444; padding-bottom: 10px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <h2>🖼️ Frame Gallery</h2>
+                <div>
+                    <button type="button" class="btn btn-secondary" onclick="toggleAll(true)">Select All</button>
+                    <button type="button" class="btn btn-secondary" onclick="toggleAll(false)">Clear All</button>
+                    <button type="button" class="btn" {% if is_compiling %}disabled style="background:#444; opacity:0.5;"{% endif %} onclick="submitForm('/compile_selected')">🎬 Compile Selected</button>
+                    <button type="button" class="btn btn-danger" onclick="submitForm('/delete_selected', true)">🗑️ Delete Selected</button>
+                </div>
+            </div>
+            
+            {% for date, hours in grouped_images.items() %}
+                <details class="day-card" {% if loop.first %}open{% endif %}>
+                    <summary>
+                        <div class="summary-text">📅 {{ date }}</div>
+                        <div onclick="event.stopPropagation();">
+                            <button type="button" class="btn btn-secondary" onclick="toggleDay('{{ date }}', true)">Select Day</button>
+                            <button type="button" class="btn btn-secondary" style="background:#444;" onclick="toggleDay('{{ date }}', false)">Clear Day</button>
+                        </div>
+                    </summary>
+                    
+                    {% for hour, list_of_imgs in hours.items() %}
+                        <details class="hour-card">
+                            <summary>
+                                <div class="summary-text">🕒 {{ hour }} <span style="font-size: 12px; color: #888;">({{ list_of_imgs|length }} frames)</span></div>
+                                <div onclick="event.stopPropagation();">
+                                    <button type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;" onclick="toggleHour('{{ date }}', '{{ hour }}', true)">Select Hour</button>
+                                    <button type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px; background:#444;" onclick="toggleHour('{{ date }}', '{{ hour }}', false)">Clear Hour</button>
+                                </div>
+                            </summary>
+                            
+                            <div class="gallery-grid">
+                                {% for img in list_of_imgs %}
+                                <div class="gallery-item">
+                                    <img src="/static/images/{{ img }}" alt="Frame" loading="lazy">
+                                    <span>{{ img.split('_')[2][:2] }}:{{ img.split('_')[2][2:4] }} {{ hour.split(' ')[1] }}</span><br>
+                                    <input type="checkbox" name="selected_images" value="{{ img }}" data-date="{{ date }}" data-hour="{{ hour }}" class="select-check">
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </details>
+                    {% endfor %}
+                </details>
+            {% else %}
+                <p style="color: #888;">No images captured yet.</p>
+            {% endfor %}
+        </form>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('galleryForm');
+            if (form) form.reset();
+            document.querySelectorAll('input[name="selected_images"]').forEach(cb => cb.checked = false);
+            
+            {% if pop_video %}
+                window.open('/static/images/timelapse.mp4', '_blank');
+            {% endif %}
+        });
+
+        function toggleAll(status) {
+            document.querySelectorAll('input[name="selected_images"]').forEach(cb => cb.checked = status);
+        }
+
+        function toggleDay(dateStr, status) {
+            document.querySelectorAll(`input[data-date="${dateStr}"]`).forEach(cb => cb.checked = status);
+        }
+
+        function toggleHour(dateStr, hourStr, status) {
+            document.querySelectorAll(`input[data-date="${dateStr}"][data-hour="${hourStr}"]`).forEach(cb => cb.checked = status);
+        }
+
+        function submitForm(targetAction, confirmRequired = false) {
+            const form = document.getElementById('galleryForm');
+            const checkedCount = document.querySelectorAll('input[name="selected_images"]:checked').length;
+            
+            if (checkedCount === 0) {
+                alert("Please select at least one image first!");
+                return;
+            }
+            
+            if (confirmRequired) {
+                const proceed = confirm(`⚠️ Are you sure you want to permanently delete ${checkedCount} selected images?`);
+                if (!proceed) return;
+            }
+            
+            form.action = targetAction;
+            form.submit();
+        }
+    </script>
+</body>
+</html>

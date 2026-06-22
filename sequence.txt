@@ -1,0 +1,16 @@
+file '/home/pi/skycam/static/images/frame_20260621_163304.jpg'
+duration 0.1
+file '/home/pi/skycam/static/images/frame_20260621_164229.jpg'
+duration 0.1
+file '/home/pi/skycam/static/images/frame_20260621_170158.jpg'
+duration 0.1
+file '/home/pi/skycam/static/images/frame_20260621_171504.jpg'
+duration 0.1
+file '/home/pi/skycam/static/images/frame_20260621_173026.jpg'
+duration 0.1
+file '/home/pi/skycam/static/images/frame_20260621_174551.jpg'
+duration 0.1
+file '/home/pi/skycam/static/images/frame_20260621_180018.jpg'
+duration 0.1
+file '/home/pi/skycam/static/images/frame_20260621_181559.jpg'
+duration 0.1

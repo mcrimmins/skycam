@@ -1,0 +1,15 @@
+# Ignore all test and frame images
+static/images/*
+
+# Except keep the folder structure alive by tracking placeholder files if any
+!static/images/.gitkeep
+
+# Ignore temporary text files used during compilation
+static/images/images_to_stitch.txt
+
+# Ignore virtual environments, cache logs, and metadata
+venv/
+.venv/
+*.pyc
+__pycache__/
+.DS_Store
