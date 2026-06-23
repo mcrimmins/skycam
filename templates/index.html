@@ -3,163 +3,314 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pi Zero SkyCam Dashboard</title>
+    <title>Tucson SkyCam Dashboard</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; color: #f0f0f0; margin: 0; padding: 20px; }
-        h1, h2, h3 { color: #fff; }
-        .container { max-width: 1000px; margin: 0 auto; background: #2a2a2a; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .control-panel { background: #333; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #007BFF; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
-        .btn { padding: 10px 20px; font-size: 14px; font-weight: bold; background: #007BFF; color: white; border: none; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; }
-        .btn:hover { background: #0056b3; }
-        .btn-success { background: #28a745; }
-        .btn-success:hover { background: #218838; }
-        .btn-danger { background: #dc3545; }
-        .btn-danger:hover { background: #bd2130; }
-        .btn-secondary { padding: 5px 12px; font-size: 12px; background: #6c757d; }
-        .btn-secondary:hover { background: #5a6268; }
-        .preview-box img { max-width: 100%; height: auto; border: 3px solid #444; border-radius: 5px; margin-top: 10px; }
-        .gallery-form { margin-top: 30px; }
+        :root {
+            --bg-color: #1a1a1a;
+            --card-bg: #2d2d2d;
+            --accent: #e67e22;
+            --text: #ffffff;
+            --text-dim: #b3b3b3;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+        h1, h2, h3 { margin: 0; color: var(--accent); }
         
-        details.day-card { background: #333; border: 1px solid #444; border-radius: 6px; margin-bottom: 15px; padding: 10px; }
-        details.day-card > summary { font-size: 18px; font-weight: bold; cursor: pointer; padding: 5px; color: #007BFF; display: flex; justify-content: space-between; align-items: center; outline: none; }
-        details[open].day-card > summary { border-bottom: 1px solid #444; margin-bottom: 15px; color: #fff; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
+        .panel { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); height: fit-content; }
         
-        details.hour-card { background: #222; border: 1px solid #333; border-radius: 4px; margin: 10px 0 10px 15px; padding: 8px; }
-        details.hour-card > summary { font-size: 15px; font-weight: bold; color: #ffc107; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        details[open].hour-card > summary { border-bottom: 1px solid #333; margin-bottom: 12px; color: #fff; }
+        .live-view img { width: 100%; border-radius: 6px; border: 2px solid #444; }
+        .control-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; color: var(--text-dim); }
+        input[type="number"], select { padding: 4px 6px; background: #444; border: 1px solid #555; color: #fff; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+        
+        .btn { display: inline-block; padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: background 0.2s; text-decoration: none; text-align: center; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: #cf6e1b; }
+        .btn-secondary { background: #444; color: white; }
+        .btn-secondary:hover { background: #555; }
+        .btn:disabled { background: #555 !important; color: #888; cursor: not-allowed; }
 
-        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 15px; }
-        .gallery-item { background: #1a1a1a; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #333; position: relative; }
-        .gallery-item img { width: 100%; height: auto; border-radius: 4px; display: block; margin-bottom: 8px; height: 90px; object-fit: cover; background: #000; }
-        .gallery-item span { font-size: 11px; color: #bbb; word-break: break-all; }
-        .select-check { transform: scale(1.3); margin-top: 5px; cursor: pointer; }
-        input[type="number"] { width: 60px; padding: 8px; border-radius: 4px; border: 1px solid #555; background: #444; color: white; text-align: center; }
-        .summary-text { display: flex; align-items: center; gap: 10px; }
+        .alert-banner { background: #f1c40f; color: #000; padding: 10px; border-radius: 4px; font-weight: bold; margin-bottom: 15px; }
+
+        /* Two-Tier Group Accordions */
+        details.day-card { background: #222; border: 1px solid #333; border-radius: 6px; margin-bottom: 15px; padding: 10px; }
+        details.day-card > summary { font-size: 1.2rem; font-weight: bold; color: var(--accent); cursor: pointer; padding: 5px; display: flex; justify-content: space-between; align-items: center; }
+        
+        details.hour-card { background: #2d2d2d; border: 1px solid #444; border-radius: 4px; margin: 10px 0; padding: 10px; }
+        details.hour-card > summary { font-size: 1rem; color: #fff; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+        
+        /* Flex Control Rows */
+        .action-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; background: #222; padding: 12px; border-radius: 6px; align-items: center; }
+        .header-controls { display: flex; align-items: center; gap: 8px; }
+        
+        .thumb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
+        .thumb-wrapper { position: relative; background: #111; border-radius: 4px; overflow: hidden; border: 1px solid #444; aspect-ratio: 16/9; }
+        .thumb-wrapper img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
+        .thumb-wrapper input[type="checkbox"] { position: absolute; top: 5px; left: 5px; width: 18px; height: 18px; cursor: pointer; z-index: 2; }
+
+        /* Lightbox Window */
+        .lightbox { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: none; justify-content: center; align-items: center; }
+        .lightbox-content { position: relative; max-width: 90%; max-height: 85%; display: flex; flex-direction: column; align-items: center; }
+        .lightbox-img { max-width: 100%; max-height: 80vh; border: 2px solid #444; border-radius: 4px; object-fit: contain; }
+        .lightbox-caption { color: var(--text); margin-top: 15px; font-size: 1.1rem; font-weight: bold; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px; }
+        .lightbox-close { position: absolute; top: -40px; right: 0; color: #fff; font-size: 2rem; cursor: pointer; background: none; border: none; }
+        .lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; font-size: 2rem; padding: 10px 15px; cursor: pointer; border-radius: 4px; }
+        .lightbox-nav:hover { background: var(--accent); }
+        .lightbox-prev { left: -60px; }
+        .lightbox-next { right: -60px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🌵 Tucson SkyCam Prototype Dashboard</h1>
-        
-        <div class="control-panel">
-            <form action="/update_settings" method="POST" style="display: flex; align-items: center; gap: 10px;">
-                <label><strong>Interval (seconds):</strong></label>
-                <input type="number" name="interval" value="{{ config.INTERVAL }}" min="5">
-                
-                {% if config.AUTO_ON %}
-                    <button type="submit" name="action" value="stop" class="btn btn-danger">🛑 Stop Auto Capture</button>
-                {% else %}
-                    <button type="submit" name="action" value="start" class="btn btn-success">▶️ Start Auto Capture</button>
-                {% endif %}
-            </form>
-            <a href="/snap" class="btn">📸 Manual Snap</a>
-        </div>
+        <header>
+            <h1>🌵 Tucson SkyCam Control Panel</h1>
+            <div>
+                <a href="/snap" class="btn btn-secondary">📸 Manual Snap</a>
+            </div>
+        </header>
 
-        <div class="preview-box">
-            <h3>Latest Horizon View:</h3>
-            <img src="/static/images/latest.jpg?t={{ cache_buster }}" alt="No image captured yet">
-            <br><br>
-            
-            {% if is_compiling %}
-                <div class="btn" style="background: #ffc107; color: #000; cursor: default;">
-                    🎬 Timelapse is compiling in background... please refresh page in a moment
+        {% if is_compiling %}
+        <div class="alert-banner">
+            <span>🎬 Timelapse is compiling in background... Dashboard is monitoring progress.</span>
+        </div>
+        {% endif %}
+
+        <div class="dashboard-grid">
+            <div class="panel">
+                <div class="live-view control-group">
+                    <h3>Latest Horizon View</h3>
+                    <img src="/static/images/latest.jpg?t={{ cache_buster }}" alt="Latest View" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'><rect width=\'100\' height=\'100\' fill=\'%23333\'/><text x=\'50%\' y=\'50%\' font-size=\'10\' fill=\'%23aaa\' text-anchor=\'middle\' dominant-baseline=\'middle\'>No frame captured yet</text></svg>'">
                 </div>
-                <script>
-                    setTimeout(() => { window.location.reload(); }, 6000);
-                </script>
-            {% elif timelapse_exists %}
-                <a href="/static/images/timelapse.mp4" class="btn btn-success" download>⬇️ Download Compiled Timelapse</a>
-            {% endif %}
-        </div>
 
-        <form id="galleryForm" method="POST" class="gallery-form" autocomplete="off">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #444; padding-bottom: 10px; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-                <h2>🖼️ Frame Gallery</h2>
-                <div>
-                    <button type="button" class="btn btn-secondary" onclick="toggleAll(true)">Select All</button>
-                    <button type="button" class="btn btn-secondary" onclick="toggleAll(false)">Clear All</button>
-                    <button type="button" class="btn" {% if is_compiling %}disabled style="background:#444; opacity:0.5;"{% endif %} onclick="submitForm('/compile_selected')">🎬 Compile Selected</button>
-                    <button type="button" class="btn btn-danger" onclick="submitForm('/delete_selected', true)">🗑️ Delete Selected</button>
+                <form action="/update_settings" method="POST" class="control-group">
+                    <h3>Automation Engine</h3>
+                    <p>Status: 
+                        {% if config.AUTO_ON %}
+                            <span style="color: #2ecc71; font-weight:bold;">▶️ ACTIVE LOOPING</span>
+                        {% else %}
+                            <span style="color: #e74c3c; font-weight:bold;">⏹️ PAUSED</span>
+                        {% endif %}
+                    </p>
+                    <div style="margin: 10px 0;">
+                        <label>Capture Delay Interval (seconds):</label>
+                        <input type="number" name="interval" value="{{ config.INTERVAL }}" min="5">
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button type="submit" name="action" value="start" class="btn btn-primary" style="flex:1;">▶️ Start Auto</button>
+                        <button type="submit" name="action" value="stop" class="btn btn-secondary" style="flex:1;">⏹️ Stop</button>
+                    </div>
+                </form>
+
+                <div class="control-group">
+                    <h3>Video Output</h3>
+                    {% if timelapse_exists %}
+                        <a href="/static/images/timelapse.mp4?t={{ cache_buster }}" target="_blank" class="btn btn-primary" style="display:block; margin-bottom:10px;">📥 Download / Play Timelapse</a>
+                    {% else %}
+                        <p style="color:var(--text-dim); font-style:italic;">No timelapse compiled yet.</p>
+                    {% endif %}
                 </div>
             </div>
-            
-            {% for date, hours in grouped_images.items() %}
-                <details class="day-card" {% if loop.first %}open{% endif %}>
-                    <summary>
-                        <div class="summary-text">📅 {{ date }}</div>
-                        <div onclick="event.stopPropagation();">
-                            <button type="button" class="btn btn-secondary" onclick="toggleDay('{{ date }}', true)">Select Day</button>
-                            <button type="button" class="btn btn-secondary" style="background:#444;" onclick="toggleDay('{{ date }}', false)">Clear Day</button>
+
+            <div class="panel">
+                <form id="gallery-form" method="POST">
+                    <div class="action-bar">
+                        <button type="submit" formaction="/compile_selected" class="btn btn-primary" {% if is_compiling %}disabled{% endif %}>🎬 Compile Selected</button>
+                        <button type="submit" formaction="/delete_selected" class="btn btn-secondary" onclick="return confirm('Are you sure you want to delete all selected frames?');" {% if is_compiling %}disabled{% endif %}>🗑️ Delete Selected</button>
+                        <div style="margin-left: auto;">
+                            <button type="button" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;" onclick="clearGlobalSelections()">🔲 Clear All Selections</button>
                         </div>
-                    </summary>
-                    
-                    {% for hour, list_of_imgs in hours.items() %}
-                        <details class="hour-card">
+                    </div>
+
+                    <div class="gallery-tree">
+                        {% for date_str, hours in grouped_images.items() %}
+                        <details class="day-card" open>
                             <summary>
-                                <div class="summary-text">🕒 {{ hour }} <span style="font-size: 12px; color: #888;">({{ list_of_imgs|length }} frames)</span></div>
-                                <div onclick="event.stopPropagation();">
-                                    <button type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;" onclick="toggleHour('{{ date }}', '{{ hour }}', true)">Select Hour</button>
-                                    <button type="button" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px; background:#444;" onclick="toggleHour('{{ date }}', '{{ hour }}', false)">Clear Hour</button>
+                                <span>📅 {{ date_str }}</span>
+                                <div class="header-controls" onclick="event.stopPropagation();">
+                                    <button type="button" class="btn btn-secondary" style="padding:2px 8px; font-size:0.75rem;" onclick="toggleDaySelection(this, true)">Select Day</button>
+                                    <button type="button" class="btn btn-secondary" style="padding:2px 8px; font-size:0.75rem;" onclick="toggleDaySelection(this, false)">Clear Day</button>
                                 </div>
                             </summary>
                             
-                            <div class="gallery-grid">
-                                {% for img in list_of_imgs %}
-                                <div class="gallery-item">
-                                    <img src="/static/images/{{ img }}" alt="Frame" loading="lazy">
-                                    <span>{{ img.split('_')[2][:2] }}:{{ img.split('_')[2][2:4] }} {{ hour.split(' ')[1] }}</span><br>
-                                    <input type="checkbox" name="selected_images" value="{{ img }}" data-date="{{ date }}" data-hour="{{ hour }}" class="select-check">
+                            {% for hour_str, frames in hours.items() %}
+                            <details class="hour-card">
+                                <summary>
+                                    <span>🕒 {{ hour_str }} (<span class="frame-count">{{ frames|length }}</span> frames)</span>
+                                    
+                                    <div class="header-controls" onclick="event.stopPropagation();">
+                                        <select class="hour-stride-select" onchange="applyHourStride(this)">
+                                            <option value="1">All Frames (100%)</option>
+                                            <option value="2">Every 2nd Frame (50%)</option>
+                                            <option value="5">Every 5th Frame (20%)</option>
+                                            <option value="10">Every 10th Frame (10%)</option>
+                                            <option value="none" selected>Custom / Clear</option>
+                                        </select>
+                                        <button type="button" class="btn btn-secondary" style="padding:2px 8px; font-size:0.75rem;" onclick="toggleHourSelection(this, false)">Clear Hour</button>
+                                    </div>
+                                </summary>
+                                
+                                <div class="thumb-grid">
+                                    {% for img in frames %}
+                                    <div class="thumb-wrapper">
+                                        <input type="checkbox" name="selected_images" value="{{ img }}" class="gallery-cb">
+                                        <img src="/static/images/{{ img }}" loading="lazy" class="gallery-img" data-filename="{{ img }}" onclick="openLightbox(this)">
+                                    </div>
+                                    {% endfor %}
                                 </div>
-                                {% endfor %}
-                            </div>
+                            </details>
+                            {% endfor %}
                         </details>
-                    {% endfor %}
-                </details>
-            {% else %}
-                <p style="color: #888;">No images captured yet.</p>
-            {% endfor %}
-        </form>
+                        {% else %}
+                        <p style="text-align:center; color:var(--text-dim); padding:4px;">No custom frames recorded on disk yet.</p>
+                        {% endfor %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div id="skycam-lightbox" class="lightbox" onclick="closeLightbox(event)">
+        <div class="lightbox-content" onclick="event.stopPropagation()">
+            <button type="button" class="lightbox-close" onclick="closeLightbox(null)">✕</button>
+            <button type="button" class="lightbox-nav lightbox-prev" onclick="navigateLightbox(-1)">❮</button>
+            <img id="lightbox-target-image" src="" class="lightbox-img" alt="Lightbox Preview">
+            <button type="button" class="lightbox-nav lightbox-next" onclick="navigateLightbox(1)">❯</button>
+            <div id="lightbox-target-caption" class="lightbox-caption"></div>
+        </div>
     </div>
 
     <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('galleryForm');
-            if (form) form.reset();
-            document.querySelectorAll('input[name="selected_images"]').forEach(cb => cb.checked = false);
-            
-            {% if pop_video %}
-                window.open('/static/images/timelapse.mp4', '_blank');
-            {% endif %}
+        let currentImageArray = [];
+        let currentImageIndex = -1;
+
+        {% if is_compiling %}
+        setInterval(function() { window.location.reload(); }, 6000);
+        {% endif %}
+
+        {% if pop_video %}
+        window.open('/static/images/timelapse.mp4', '_blank');
+        {% endif %}
+
+        document.getElementById('gallery-form').addEventListener('submit', function(e) {
+            if (e.submitter && e.submitter.getAttribute('formaction') === '/compile_selected') {
+                const checkedCount = document.querySelectorAll('.gallery-cb:checked').length;
+                if (checkedCount === 0) {
+                    e.preventDefault();
+                    alert("⚠️ Please select at least one image first before compiling a timelapse!");
+                }
+            }
         });
 
-        function toggleAll(status) {
-            document.querySelectorAll('input[name="selected_images"]').forEach(cb => cb.checked = status);
+        // ==========================================
+        // HOUR-SCOPED SELECTION CONTROLLERS
+        // ==========================================
+        
+        function clearGlobalSelections() {
+            document.querySelectorAll('.gallery-cb').forEach(cb => cb.checked = false);
+            document.querySelectorAll('.hour-stride-select').forEach(sel => sel.value = "none");
         }
 
-        function toggleDay(dateStr, status) {
-            document.querySelectorAll(`input[data-date="${dateStr}"]`).forEach(cb => cb.checked = status);
-        }
-
-        function toggleHour(dateStr, hourStr, status) {
-            document.querySelectorAll(`input[data-date="${dateStr}"][data-hour="${hourStr}"]`).forEach(cb => cb.checked = status);
-        }
-
-        function submitForm(targetAction, confirmRequired = false) {
-            const form = document.getElementById('galleryForm');
-            const checkedCount = document.querySelectorAll('input[name="selected_images"]:checked').length;
-            
-            if (checkedCount === 0) {
-                alert("Please select at least one image first!");
-                return;
+        function toggleDaySelection(buttonEl, checkState) {
+            const dayCard = buttonEl.closest('.day-card');
+            if (dayCard) {
+                dayCard.querySelectorAll('.gallery-cb').forEach(cb => cb.checked = checkState);
+                dayCard.querySelectorAll('.hour-stride-select').forEach(sel => sel.value = checkState ? "1" : "none");
             }
-            
-            if (confirmRequired) {
-                const proceed = confirm(`⚠️ Are you sure you want to permanently delete ${checkedCount} selected images?`);
-                if (!proceed) return;
+        }
+
+        function toggleHourSelection(buttonEl, checkState) {
+            const hourCard = buttonEl.closest('.hour-card');
+            if (hourCard) {
+                hourCard.querySelectorAll('.gallery-cb').forEach(cb => cb.checked = checkState);
+                const selectMenu = hourCard.querySelector('.hour-stride-select');
+                if (selectMenu) selectMenu.value = checkState ? "1" : "none";
             }
+        }
+
+        // Mathematical Down-Sampling Stride limited specifically to the Parent Hour block
+        function applyHourStride(selectElement) {
+            const hourCard = selectElement.closest('.hour-card');
+            if (!hourCard) return;
+
+            const value = selectElement.value;
+            const hourBoxes = hourCard.querySelectorAll('.gallery-cb');
+
+            // Wipe out selections just inside this isolated hour block
+            hourBoxes.forEach(cb => cb.checked = false);
+
+            if (value === "none") return;
+
+            const stride = parseInt(value);
+            // Iterate down this block array specifically
+            for (let i = 0; i < hourBoxes.length; i += stride) {
+                hourBoxes[i].checked = true;
+            }
+        }
+
+        // ==========================================
+        // LIGHTBOX CONTROLLER ENGINE
+        // ==========================================
+        function openLightbox(imgElement) {
+            const lb = document.getElementById('skycam-lightbox');
+            const lbImg = document.getElementById('lightbox-target-image');
+            const lbCap = document.getElementById('lightbox-target-caption');
             
-            form.action = targetAction;
-            form.submit();
+            const allImgs = Array.from(document.querySelectorAll('.gallery-img'));
+            currentImageArray = allImgs.map(img => ({
+                src: img.getAttribute('src'),
+                name: img.getAttribute('data-filename')
+            }));
+            
+            currentImageIndex = allImgs.indexOf(imgElement);
+            
+            lbImg.src = currentImageArray[currentImageIndex].src;
+            lbCap.textContent = formatCaptionName(currentImageArray[currentImageIndex].name);
+            lb.style.display = 'flex';
+            
+            document.addEventListener('keydown', handleLightboxKeys);
+        }
+
+        function closeLightbox(e) {
+            document.getElementById('skycam-lightbox').style.display = 'none';
+            document.removeEventListener('keydown', handleLightboxKeys);
+        }
+
+        function navigateLightbox(direction) {
+            if (currentImageArray.length === 0) return;
+            currentImageIndex += direction;
+            if (currentImageIndex >= currentImageArray.length) currentImageIndex = 0;
+            if (currentImageIndex < 0) currentImageIndex = currentImageArray.length - 1;
+            
+            const lbImg = document.getElementById('lightbox-target-image');
+            const lbCap = document.getElementById('lightbox-target-caption');
+            lbImg.src = currentImageArray[currentImageIndex].src;
+            lbCap.textContent = formatCaptionName(currentImageArray[currentImageIndex].name);
+        }
+
+        function handleLightboxKeys(e) {
+            if (e.key === "ArrowRight") navigateLightbox(1);
+            if (e.key === "ArrowLeft") navigateLightbox(-1);
+            if (e.key === "Escape") closeLightbox(null);
+        }
+
+        function formatCaptionName(filename) {
+            try {
+                const parts = filename.split('_');
+                const d = parts[1]; const t = parts[2];
+                const dateStr = `${d.substring(0,4)}-${d.substring(4,6)}-${d.substring(6,8)}`;
+                const hr = parseInt(t.substring(0,2)); const min = t.substring(2,4); const sec = t.substring(4,6);
+                const ampm = hr >= 12 ? 'PM' : 'AM';
+                const displayHr = hr % 12 === 0 ? 12 : hr % 12;
+                return `📅 ${dateStr} @ ${displayHr}:${min}:${sec} ${ampm}`;
+            } catch(e) { return filename; }
         }
     </script>
 </body>
